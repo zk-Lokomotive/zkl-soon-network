@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { Train, Shield, History, ArrowRight, CheckCircle } from 'lucide-react';
+import { Train, Shield, History, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
 import { FileUpload } from './components/FileUpload';
@@ -10,7 +10,16 @@ import { TransferStatus } from './components/TransferStatus';
 import { TransferHistory } from './components/TransferHistory';
 import { FileTransferService } from './services/fileTransfer';
 
-function App() {
+interface Transfer {
+  id: string;
+  fileName: string;
+  recipient: string;
+  ipfsUrl: string;
+  timestamp: string;
+  status: 'completed' | 'pending' | 'failed';
+}
+
+const App: React.FC = () => {
   const { publicKey, sendTransaction } = useWallet();
   const [file, setFile] = useState<File | null>(null);
   const [recipientAddress, setRecipientAddress] = useState('');
@@ -18,7 +27,7 @@ function App() {
   const [ipfsUrl, setIpfsUrl] = useState<string>();
   const [transferService] = useState(() => new FileTransferService());
   const [activeTab, setActiveTab] = useState<'transfer' | 'history'>('transfer');
-  const [transfers, setTransfers] = useState<any[]>([]);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
 
   useEffect(() => {
     transferService.initialize();
@@ -77,7 +86,7 @@ function App() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Train size={32} className="animate-pulse" />
+            <Train className="animate-pulse" size={32} />
             <h1 className="text-4xl font-bold">ZK-Lokomotive SOON</h1>
           </motion.div>
           <WalletMultiButton className="!bg-[#feffaf] !text-black hover:!bg-[#e5e69c] transition-colors" />
@@ -111,7 +120,7 @@ function App() {
                 <div className="bg-zinc-900/50 backdrop-blur-lg rounded-xl p-8 shadow-xl border border-zinc-800">
                   <div className="space-y-6">
                     <div className="flex items-center space-x-4 mb-8">
-                      <Shield size={24} className="text-[#feffaf]" />
+                      <Shield className="text-[#feffaf]" size={24} />
                       <h2 className="text-2xl font-semibold">Private File Transfer</h2>
                     </div>
 
@@ -141,6 +150,7 @@ function App() {
                             ? 'bg-zinc-700 cursor-not-allowed'
                             : 'bg-[#feffaf] text-black hover:bg-[#e5e69c]'
                         }`}
+                        type="button"
                       >
                         {isLoading ? (
                           <>
@@ -166,7 +176,7 @@ function App() {
       </div>
     </div>
   );
-}
+};
 
 interface TabButtonProps {
   active: boolean;
@@ -175,7 +185,7 @@ interface TabButtonProps {
   text: string;
 }
 
-function TabButton({ active, onClick, icon, text }: TabButtonProps) {
+const TabButton: React.FC<TabButtonProps> = ({ active, onClick, icon, text }) => {
   return (
     <button
       onClick={onClick}
@@ -184,11 +194,12 @@ function TabButton({ active, onClick, icon, text }: TabButtonProps) {
           ? 'bg-[#feffaf] text-black' 
           : 'bg-zinc-900/50 hover:bg-zinc-800'
       }`}
+      type="button"
     >
       {icon}
       <span>{text}</span>
     </button>
   );
-}
+};
 
 export default App;

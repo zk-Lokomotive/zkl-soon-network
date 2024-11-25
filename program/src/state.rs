@@ -3,18 +3,32 @@ use solana_program::pubkey::Pubkey;
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub enum TransferState {
-    Uninitialized,
     Pending {
         sender: Pubkey,
-        recipient: Pubkey,
-        file_hash: [u8; 32],
-        commitment: [u8; 32],
-        proof: Vec<u8>,
+        recipient: Pubkey, 
+        ipfs_cid: String,  
+        commitment: [u8; 32], 
+        proof: Vec<u8>, 
+        public_signals: Vec<String>, 
+        file_hash: String, 
     },
     Completed {
         nullifier: [u8; 32],
     },
 }
+
+pub enum FileTransferInstruction {
+    InitTransfer {
+        proof: Vec<u8>,
+        public_signals: Vec<String>,
+        ipfs_cid: String,
+        commitment: [u8; 32],
+        file_hash: String, 
+    },
+    ConfirmReceipt { nullifier: [u8; 32] },
+}
+
+
 
 impl TransferState {
     pub const SIZE: usize = 1 + 32 + 32 + 32 + 32 + 512; // Max size estimation

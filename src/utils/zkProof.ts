@@ -1,13 +1,41 @@
 import { buildPoseidon } from 'circomlibjs';
-import { PublicKey } from '@solana/web3.js';
-import * as snarkjs from 'snarkjs';
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex } from '@noble/hashes/utils';
+import * as snarkjs from 'snarkjs';
+
+type ProofInput = {
+  fileHash: bigint;
+  sender: bigint;
+  recipient: bigint;
+  cidHash: bigint;
+};
+
+type Proof = {
+  pi_a: [string, string, string];
+  pi_b: [[string, string], [string, string], [string, string]];
+  pi_c: [string, string, string];
+  protocol: string;
+  curve: string;
+};
+
+type ProofResult = {
+  proof: string;
+  publicSignals: string[];
+  commitment: string;
+};
+
+interface Groth16Proof {
+  pi_a: string[];
+  pi_b: string[][];
+  pi_c: string[];
+  protocol: string;
+  curve: string;
+}
 
 export class ZKProofSystem {
   private poseidon: any;
-  private wasmFile: string;
-  private zkeyFile: string;
+  private readonly wasmFile: string;
+  private readonly zkeyFile: string;
 
   constructor() {
     this.wasmFile = '/circuits/transfer.wasm';
@@ -28,12 +56,12 @@ export class ZKProofSystem {
     senderAddress: string,
     recipientAddress: string,
     ipfsCid: string
-  ) {
+  ): Promise<ProofResult> {
     try {
       const fileBuffer = await file.arrayBuffer();
       const fileHash = await this.hashFile(fileBuffer);
       
-      const circuitInputs = {
+      const circuitInputs: ProofInput = {
         fileHash: BigInt('0x' + fileHash),
         sender: BigInt('0x' + this.hashString(senderAddress)),
         recipient: BigInt('0x' + this.hashString(recipientAddress)),
@@ -46,6 +74,14 @@ export class ZKProofSystem {
         this.zkeyFile
       );
 
+      const formattedProof: Proof = {
+        pi_a: proof.pi_a.map(String) as [string, string, string],
+        pi_b: proof.pi_b.map((arr: any[]) => arr.map(String)) as [[string, string], [string, string], [string, string]],
+        pi_c: proof.pi_c.map(String) as [string, string, string],
+        protocol: proof.protocol,
+        curve: proof.curve
+      };
+
       const commitment = this.poseidon([
         circuitInputs.fileHash,
         circuitInputs.sender,
@@ -54,7 +90,7 @@ export class ZKProofSystem {
       ]);
 
       return {
-        proof: this.serializeProof(proof),
+        proof: Buffer.from(JSON.stringify(formattedProof)).toString('base64'),
         publicSignals,
         commitment: commitment.toString()
       };
@@ -67,10 +103,10 @@ export class ZKProofSystem {
   async verifyProof(
     serializedProof: string,
     publicSignals: string[],
-    verificationKey: any
+    verificationKey: unknown
   ): Promise<boolean> {
     try {
-      const proof = this.deserializeProof(serializedProof);
+      const proof: Groth16Proof = JSON.parse(Buffer.from(serializedProof, 'base64').toString());
       return await snarkjs.groth16.verify(verificationKey, publicSignals, proof);
     } catch (error) {
       console.error('Error verifying proof:', error);
@@ -86,13 +122,5 @@ export class ZKProofSystem {
   private hashString(value: string): string {
     const hashBuffer = sha256(new TextEncoder().encode(value));
     return bytesToHex(hashBuffer);
-  }
-
-  private serializeProof(proof: any): string {
-    return Buffer.from(JSON.stringify(proof)).toString('base64');
-  }
-
-  private deserializeProof(serializedProof: string): any {
-    return JSON.parse(Buffer.from(serializedProof, 'base64').toString());
   }
 }

@@ -32,6 +32,7 @@ impl Processor {
                 public_signals,
                 ipfs_cid,
                 commitment,
+                file_hash, 
             } => {
                 msg!("Instruction: InitTransfer");
                 Self::process_init_transfer(
@@ -41,12 +42,14 @@ impl Processor {
                     public_signals,
                     ipfs_cid,
                     commitment,
+                    file_hash, 
                 )
             }
             FileTransferInstruction::ConfirmReceipt { nullifier } => {
                 msg!("Instruction: ConfirmReceipt");
                 Self::process_confirm_receipt(program_id, accounts, nullifier)
             }
+        }
         }
     }
 
@@ -81,6 +84,7 @@ impl Processor {
             commitment,
             proof,
             public_signals,
+            file_hash,
         };
 
         transfer_state.serialize(&mut *state_info.data.borrow_mut())?;
@@ -165,4 +169,3 @@ impl Processor {
         msg!("Transfer completed successfully");
         Ok(())
     }
-}
