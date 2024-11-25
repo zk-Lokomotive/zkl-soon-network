@@ -6,23 +6,15 @@ import {
 } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { 
-  PhantomWalletAdapter,
   SolflareWalletAdapter,
-  BackpackWalletAdapter,
-  TorusWalletAdapter
 } from '@solana/wallet-adapter-wallets';
 import App from './App';
 import './index.css';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
-const wallets = [
-  new PhantomWalletAdapter(),
-  new SolflareWalletAdapter(),
-  new BackpackWalletAdapter(),
-  new TorusWalletAdapter()
-];
-
+// Configure SOON devnet endpoint
 const endpoint = 'https://rpc.devnet.soo.network/rpc';
+const wallets = [new SolflareWalletAdapter()];
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

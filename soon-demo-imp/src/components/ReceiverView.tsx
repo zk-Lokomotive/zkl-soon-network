@@ -1,21 +1,17 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Download, FileText, ExternalLink } from 'lucide-react';
+import { FileText, ExternalLink, Download } from 'lucide-react';
 import { FileTransferMetadata } from '../services/fileTransfer';
-import { formatFileSize } from '../utils/format';
+import { formatFileSize } from '../utils/format.ts';
 
 interface ReceiverViewProps {
   receivedFiles: FileTransferMetadata[];
-  onDownload: (ipfsHash: string) => Promise<void>;
 }
 
-export function ReceiverView({ receivedFiles, onDownload }: ReceiverViewProps) {
+export function ReceiverView({ receivedFiles }: ReceiverViewProps) {
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-4 mb-8">
-        <Download size={24} className="text-[#feffaf]" />
-        <h2 className="text-2xl font-semibold">Received Files</h2>
-      </div>
+      <h2 className="text-2xl font-semibold mb-6">Received Files</h2>
 
       {receivedFiles.length === 0 ? (
         <div className="bg-zinc-900/50 backdrop-blur-lg rounded-xl p-8 text-center">
@@ -48,18 +44,20 @@ export function ReceiverView({ receivedFiles, onDownload }: ReceiverViewProps) {
                   </div>
                 </div>
                 
-                <button
-                  onClick={() => onDownload(file.ipfsHash)}
+                <a
+                  href={file.ipfsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center space-x-2 px-4 py-2 bg-[#feffaf] text-black rounded-lg hover:bg-[#e5e69c] transition-colors"
                 >
                   <Download size={16} />
                   <span>Download</span>
-                </button>
+                </a>
               </div>
 
               <div className="mt-4 pt-4 border-t border-zinc-800">
                 <a
-                  href={`https://ipfs.io/ipfs/${file.ipfsHash}`}
+                  href={file.ipfsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center space-x-1 text-[#feffaf] hover:underline text-sm"

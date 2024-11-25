@@ -33,11 +33,27 @@ export class IPFSService {
 
   async downloadFile(cid: string): Promise<Uint8Array> {
     try {
-      const chunks = [];
+      const chunks: Uint8Array[] = [];
+      let totalLength = 0;
+
+
       for await (const chunk of this.ipfs.cat(cid)) {
         chunks.push(chunk);
+        totalLength += chunk.length;
       }
-      return new Uint8Array(chunks.reduce((acc, chunk) => [...acc, ...chunk], []));
+
+
+      const result = new Uint8Array(totalLength);
+      let offset = 0;
+
+
+      for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      return result;
+
     } catch (error) {
       console.error('IPFS download error:', error);
       throw new Error('Failed to download file from IPFS');
