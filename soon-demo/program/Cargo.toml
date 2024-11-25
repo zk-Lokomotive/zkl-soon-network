@@ -1,0 +1,15 @@
+[package]
+name = "zk-lokomotive"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+solana-program = "1.17.0"
+borsh = "0.10.3"
+thiserror = "1.0.50"
+num-derive = "0.4"
+num-traits = "0.2"
+poseidon-rs = "0.0.8"
+
+[lib]
+crate-type = ["cdylib", "lib"]
