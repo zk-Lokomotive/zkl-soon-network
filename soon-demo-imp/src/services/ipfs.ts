@@ -63,4 +63,58 @@ export class IPFSService {
   getIPFSUrl(cid: string): string {
     return `http://localhost:8080/ipfs/${cid}`;
   }
+
+  async updateFile(oldCid: string, newContent: File): Promise<{
+    newCid: string;
+    oldCid: string;
+  }> {
+    try {
+      // Yeni dosyayı yükle
+      const newCid = await this.uploadFile(newContent);
+      
+      // Versiyon bilgisini kaydet
+      await this.storeVersion({
+        currentCid: newCid,
+        previousCid: oldCid,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Eski ve yeni CID'leri döndür
+      return {
+        newCid,
+        oldCid
+      };
+    } catch (error) {
+      console.error('IPFS güncelleme hatası:', error);
+      throw new Error('Dosya güncellenemedi');
+    }
+  }
+
+  // Dosya versiyonlarını takip etmek için
+  private async storeVersion(metadata: {
+    currentCid: string;
+    previousCid: string;
+    timestamp: string;
+  }): Promise<void> {
+    try {
+      const versions = this.getVersionHistory(metadata.currentCid) || [];
+      versions.push(metadata);
+      localStorage.setItem(`versions_${metadata.currentCid}`, JSON.stringify(versions));
+    } catch (error) {
+      console.error('Versiyon kayıt hatası:', error);
+    }
+  }
+
+  public getVersionHistory(cid: string): Array<{
+    currentCid: string;
+    previousCid: string;
+    timestamp: string;
+  }> {
+    try {
+      const versions = localStorage.getItem(`versions_${cid}`);
+      return versions ? JSON.parse(versions) : [];
+    } catch {
+      return [];
+    }
+  }
 }

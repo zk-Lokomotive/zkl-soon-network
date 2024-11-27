@@ -1,15 +1,14 @@
-// import React from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { FileText, ExternalLink, KeyRound, Download } from 'lucide-react';
 import { FileTransferMetadata } from '../services/fileTransfer';
-import { formatFileSize } from '../utils/format.ts';
+import { formatFileSize } from '../utils/format';
 
 interface TransferHistoryProps {
   transfers: FileTransferMetadata[];
   onDownload?: (ipfsHash: string) => Promise<void>;
 }
-// interface FileTransferMetadata {
-// }
+
 export function TransferHistory({ transfers, onDownload }: TransferHistoryProps) {
   if (transfers.length === 0) {
     return (

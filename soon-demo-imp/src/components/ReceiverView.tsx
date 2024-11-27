@@ -1,14 +1,36 @@
-import React from 'react';
+// import React from 'react';
 import { motion } from 'framer-motion';
 import { FileText, ExternalLink, Download } from 'lucide-react';
 import { FileTransferMetadata } from '../services/fileTransfer';
-import { formatFileSize } from '../utils/format.ts';
+import { formatFileSize } from '../utils/format';
+import { IPFSService } from '../services/ipfs';
+import { toast } from 'react-hot-toast';
 
 interface ReceiverViewProps {
   receivedFiles: FileTransferMetadata[];
 }
 
 export function ReceiverView({ receivedFiles }: ReceiverViewProps) {
+  const handleDownload = async (file: FileTransferMetadata) => {
+    try {
+      const ipfsService = IPFSService.getInstance();
+      const data = await ipfsService.downloadFile(file.ipfsCid);
+      
+      // Dosyayı indir
+      const blob = new Blob([data], { type: file.fileType });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      toast.error('Dosya indirilemedi');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold mb-6">Received Files</h2>
@@ -44,15 +66,24 @@ export function ReceiverView({ receivedFiles }: ReceiverViewProps) {
                   </div>
                 </div>
                 
-                <a
-                  href={file.ipfsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center space-x-2 px-4 py-2 bg-[#feffaf] text-black rounded-lg hover:bg-[#e5e69c] transition-colors"
-                >
-                  <Download size={16} />
-                  <span>Download</span>
-                </a>
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => handleDownload(file)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-[#feffaf] text-black rounded-lg hover:bg-[#e5e69c] transition-colors"
+                  >
+                    <Download size={16} />
+                    <span>İndir</span>
+                  </button>
+                  <a
+                    href={file.ipfsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 px-4 py-2 bg-[#feffaf] text-black rounded-lg hover:bg-[#e5e69c] transition-colors"
+                  >
+                    <Download size={16} />
+                    <span>Download</span>
+                  </a>
+                </div>
               </div>
 
               <div className="mt-4 pt-4 border-t border-zinc-800">

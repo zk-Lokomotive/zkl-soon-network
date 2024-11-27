@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { KeyRound, FileKey, ShieldCheck, ArrowRight } from 'lucide-react';
 
 interface ZKProofProgressProps {
-  stage: number;
+  stage: number; // 0: Not started, 1: Witness, 2: Proof, 3: Verify, 4: Complete
 }
 
 export function ZKProofProgress({ stage }: ZKProofProgressProps) {

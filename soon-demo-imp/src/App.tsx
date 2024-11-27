@@ -1,8 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useWallet, WalletContextState } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FileUpload } from './components/FileUpload';
 import { AddressInput } from './components/AddressInput';
 import { TransferStatus } from './components/TransferStatus';
@@ -12,10 +10,13 @@ import { ReceiverView } from './components/ReceiverView';
 import { useSoonNetwork } from './hooks/useSoonNetwork';
 import { NetworkStatus } from './components/NetworkStatus';
 import { ZKProofProgress } from './components/ZKProofProgress';
+import { WalletButton } from './components/WalletButton';
+import { useWallet, WalletProvider } from './contexts/WalletContext';
 
-export default function App() {
-  const { publicKey, connected, wallet } = useWallet() as WalletContextState;
+function AppContent() {
+  const { walletAddress, connected, wallet } = useWallet();
   const { isOnSoonNetwork, isLoading: isNetworkSwitching } = useSoonNetwork();
+
   const [file, setFile] = useState<File | null>(null);
   const [recipientAddress, setRecipientAddress] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,16 +28,16 @@ export default function App() {
   const [zkProofStage, setZkProofStage] = useState(0);
 
   useEffect(() => {
-    if (connected && publicKey && isOnSoonNetwork) {
+    if (connected && walletAddress && isOnSoonNetwork) {
       loadTransferHistory();
     }
-  }, [connected, publicKey, isOnSoonNetwork]);
+  }, [connected, walletAddress, isOnSoonNetwork]);
 
   const loadTransferHistory = () => {
-    if (!publicKey) return;
-    const received = transferService.getReceivedFiles(publicKey.toBase58());
+    if (!walletAddress) return;
+    const received = transferService.getReceivedFiles(walletAddress.toBase58());
     setReceivedFiles(received);
-    const sent = transferService.getSentFiles(publicKey.toBase58());
+    const sent = transferService.getSentFiles(walletAddress.toBase58());
     setTransfers(sent);
   };
 
@@ -48,16 +49,9 @@ export default function App() {
     }
   };
 
-  const simulateZKProofGeneration = async () => {
-    for (let i = 1; i <= 4; i++) {
-      setZkProofStage(i);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-  };
-
   const handleTransfer = async () => {
-    if (!file || !publicKey || !recipientAddress || !wallet) {
-      toast.error('Please fill in all required fields');
+    if (!file || !walletAddress || !recipientAddress || !wallet) {
+      toast.error('Please ensure wallet is connected and all fields are filled');
       return;
     }
 
@@ -68,30 +62,32 @@ export default function App() {
 
     setIsLoading(true);
     try {
-      await simulateZKProofGeneration();
-
-      const result = await transferService.transferFile(
+      const { signature, metadata } = await transferService.transferFile(
         file,
-        publicKey,
-        recipientAddress,
-        wallet as unknown as WalletContextState
+        wallet,
+        recipientAddress
       );
 
-      setIpfsUrl(result.ipfsUrl);
+      console.log('Transfer Signature:', signature);
+
+      // Handle the result
+      setIpfsUrl(metadata.ipfsUrl);
       loadTransferHistory();
-      
       setFile(null);
       setRecipientAddress('');
       setZkProofStage(0);
+      toast.success('Transfer completed successfully!');
     } catch (error) {
       console.error('Transfer failed:', error);
-      toast.error('Transfer failed. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Transfer failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
+  
+  
 
-  const TabButton = ({ tab, label }: { tab: typeof activeTab, label: string }) => (
+  const TabButton = ({ tab, label }: { tab: typeof activeTab; label: string }) => (
     <button
       onClick={() => setActiveTab(tab)}
       className={`px-6 py-3 rounded-lg transition-all ${
@@ -99,11 +95,11 @@ export default function App() {
           ? 'bg-[#feffaf] text-black' 
           : 'bg-zinc-900/50 hover:bg-zinc-800'
       }`}
-      type="button"
     >
       {label}
     </button>
   );
+
 
   return (
     <div className="min-h-screen bg-black text-[#feffaf] font-league-spartan">
@@ -125,7 +121,7 @@ export default function App() {
               isOnSoonNetwork={isOnSoonNetwork} 
               isLoading={isNetworkSwitching}
             />
-            <WalletMultiButton className="!bg-[#feffaf] !text-black hover:!bg-[#e5e69c] transition-colors" />
+            <WalletButton />
           </div>
         </header>
 
@@ -147,48 +143,48 @@ export default function App() {
               {activeTab === 'transfer' ? (
                 <div className="bg-zinc-900/50 backdrop-blur-lg rounded-xl p-8 shadow-xl border border-zinc-800">
                   <div className="space-y-6">
-                    <div className="space-y-6">
-                      <FileUpload 
-                        file={file} 
-                        onFileChange={handleFileChange}
-                        ipfsUrl={ipfsUrl}
-                      />
-                      
-                      <AddressInput 
-                        value={recipientAddress} 
-                        onChange={setRecipientAddress} 
-                      />
+                    <FileUpload 
+                      file={file} 
+                      onFileChange={handleFileChange}
+                      ipfsUrl={ipfsUrl}
+                      isUploading={isLoading}
+                    />
+                    
+                    <AddressInput 
+                      value={recipientAddress} 
+                      onChange={setRecipientAddress} 
+                    />
 
-                      {zkProofStage > 0 && (
-                        <ZKProofProgress stage={zkProofStage} />
+                    {zkProofStage > 0 && (
+                      <ZKProofProgress stage={zkProofStage} />
+                    )}
+
+                    <TransferStatus 
+                      file={file}
+                      recipientAddress={recipientAddress}
+                      isLoading={isLoading}
+                      isWalletConnected={connected}
+                      isOnSoonNetwork={isOnSoonNetwork}
+                    />
+
+                    <button
+                      onClick={handleTransfer}
+                      disabled={!file || !recipientAddress || isLoading || !isOnSoonNetwork}
+                      className={`w-full py-4 rounded-lg font-semibold transition-all transform hover:scale-[1.02] flex items-center justify-center space-x-2 ${
+                        !file || !recipientAddress || isLoading || !isOnSoonNetwork
+                          ? 'bg-zinc-700 cursor-not-allowed'
+                          : 'bg-[#feffaf] text-black hover:bg-[#e5e69c]'
+                      }`}
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                          <span>Processing...</span>
+                        </>
+                      ) : (
+                        <span>Transfer File Securely</span>
                       )}
-
-                      <TransferStatus 
-                        file={file}
-                        recipientAddress={recipientAddress}
-                        isLoading={isLoading}
-                      />
-
-                      <button
-                        onClick={handleTransfer}
-                        disabled={!file || !recipientAddress || isLoading || !isOnSoonNetwork}
-                        className={`w-full py-4 rounded-lg font-semibold transition-all transform hover:scale-[1.02] flex items-center justify-center space-x-2 ${
-                          !file || !recipientAddress || isLoading || !isOnSoonNetwork
-                            ? 'bg-zinc-700 cursor-not-allowed'
-                            : 'bg-[#feffaf] text-black hover:bg-[#e5e69c]'
-                        }`}
-                        type="button"
-                      >
-                        {isLoading ? (
-                          <>
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black" />
-                            <span>Processing...</span>
-                          </>
-                        ) : (
-                          <span>Transfer File Securely</span>
-                        )}
-                      </button>
-                    </div>
+                    </button>
                   </div>
                 </div>
               ) : activeTab === 'received' ? (
@@ -203,3 +199,13 @@ export default function App() {
     </div>
   );
 }
+
+function App() {
+  return (
+    <WalletProvider>
+      <AppContent />
+    </WalletProvider>
+  );
+}
+
+export default App;

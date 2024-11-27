@@ -4,8 +4,6 @@ use solana_program::{
     msg,
     program_error::ProgramError,
     pubkey::Pubkey,
-    rent::Rent,
-    sysvar::Sysvar,
 };
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde_json::Value;
@@ -29,8 +27,7 @@ impl Processor {
         match instruction {
             FileTransferInstruction::InitTransfer {
                 proof,
-                public_signals,
-                ipfs_cid,
+                file_hash,
                 commitment,
             } => {
                 msg!("Instruction: InitTransfer");
@@ -38,8 +35,7 @@ impl Processor {
                     program_id,
                     accounts,
                     proof,
-                    public_signals,
-                    ipfs_cid,
+                    file_hash,
                     commitment,
                 )
             }
@@ -51,11 +47,10 @@ impl Processor {
     }
 
     fn process_init_transfer(
-        program_id: &Pubkey,
+        _program_id: &Pubkey,
         accounts: &[AccountInfo],
         proof: Vec<u8>,
-        public_signals: Vec<String>,
-        ipfs_cid: String,
+        file_hash: [u8; 32],
         commitment: [u8; 32],
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
@@ -69,7 +64,7 @@ impl Processor {
         }
 
         // Verify ZK proof
-        if !Self::verify_proof(&proof, &public_signals, &commitment)? {
+        if !Self::verify_proof(&proof, &file_hash, &commitment)? {
             return Err(FileTransferError::InvalidProof.into());
         }
 
@@ -77,10 +72,9 @@ impl Processor {
         let transfer_state = TransferState::Pending {
             sender: *sender_info.key,
             recipient: *recipient_info.key,
-            ipfs_cid,
+            file_hash,
             commitment,
             proof,
-            public_signals,
         };
 
         transfer_state.serialize(&mut *state_info.data.borrow_mut())?;
@@ -91,7 +85,7 @@ impl Processor {
 
     fn verify_proof(
         proof: &[u8],
-        public_signals: &[String],
+        file_hash: &[u8; 32],
         commitment: &[u8; 32],
     ) -> Result<bool, ProgramError> {
         // Parse proof data
@@ -108,30 +102,21 @@ impl Processor {
             return Ok(false);
         }
 
-        // Verify public signals match commitment
-        let computed_commitment = Self::compute_commitment(public_signals)?;
-        Ok(computed_commitment == commitment)
+        // Verify file_hash matches commitment
+        let computed_commitment = Self::compute_commitment(file_hash)?;
+        Ok(&computed_commitment == commitment)
     }
 
-    fn compute_commitment(public_signals: &[String]) -> Result<[u8; 32], ProgramError> {
-        // In production, this would use the same Poseidon hash as the circuit
-        // For now, we'll use a simple SHA-256
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
+    fn compute_commitment(file_hash: &[u8; 32]) -> Result<[u8; 32], ProgramError> {
+        use solana_program::keccak::hash;
         
-        for signal in public_signals {
-            hasher.update(signal.as_bytes());
-        }
-        
-        let result = hasher.finalize();
-        let mut commitment = [0u8; 32];
-        commitment.copy_from_slice(&result[..]);
-        
-        Ok(commitment)
+        // Using Keccak256 since it's already available in solana_program
+        let result = hash(file_hash);
+        Ok(result.to_bytes())
     }
 
     fn process_confirm_receipt(
-        program_id: &Pubkey,
+        _program_id: &Pubkey,
         accounts: &[AccountInfo],
         nullifier: [u8; 32],
     ) -> ProgramResult {
