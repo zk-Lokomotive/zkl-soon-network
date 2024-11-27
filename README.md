@@ -1,4 +1,4 @@
-# ZKL-SOON-Network
+# zkλ-SOON-Network
 
 **zkλ** is enabling secure, efficient, and decentralized file transfer operations across Solana and Ethereum (SVM) networks. By leveraging zero-knowledge cryptography, this system ensures high performance and confidentiality for cross-chain file sharing and wallet operations.
 
