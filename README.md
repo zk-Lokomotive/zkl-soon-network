@@ -3,6 +3,31 @@
 **zkλ** is enabling secure, efficient, and decentralized file transfer operations across Solana and Ethereum (SVM) networks. By leveraging zero-knowledge cryptography, this system ensures high performance and confidentiality for cross-chain file sharing and wallet operations.
 
 ---
+Soon Testnet Program ID: `TdvVTrdwVwYZRGL4mJLjjPBc9SwKraKGoaNJowsrSNX`
+
+### Project Setup
+```bash
+# Clone the repository
+git clone https://github.com/your-username/zkl-soon-network.git
+
+# Install dependencies
+cd zkl-soon-network
+npm install
+
+# Start development server
+npm run dev
+```
+
+### Environment Configuration
+Create a `.env` file in the project root:
+
+```env
+VITE_IPFS_API_URL=http://localhost:5001
+VITE_IPFS_GATEWAY_URL=http://localhost:8080
+VITE_SOON_RPC_URL=https://rpc.testnet.soo.network/rpc
+```
+
+
 
 ## Features
 
@@ -111,6 +136,74 @@ Program ID: `TdvVTrdwVwYZRGL4mJLjjPBc9SwKraKGoaNJowsrSNX`
   - Uploads files to IPFS and generates unique hashes.
 - **ipfs.ts**:
   - Manages IPFS connections and operations for file storage and retrieval.
+ 
+### Troubleshooting IPFS
+
+1. **CORS Issues**
+```bash
+# Reset CORS configuration
+ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '[
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000"
+]'
+ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "POST", "GET"]'
+```
+
+2. **Connection Issues**
+```bash
+# Check if IPFS daemon is running
+ps aux | grep ipfs
+
+# Check API availability
+curl -X POST http://localhost:5001/api/v0/id
+
+# Reset IPFS repository
+ipfs repo gc
+```
+
+3. **Performance Optimization**
+```bash
+# Configure connection manager
+ipfs config --json Swarm.ConnMgr.HighWater 200
+ipfs config --json Swarm.ConnMgr.LowWater 150
+
+# Enable file store garbage collection
+ipfs config --json Datastore.GCPeriod "1h"
+```
+
+Add the following content:
+```ini
+[Unit]
+Description=IPFS Daemon
+After=network.target
+
+[Service]
+User=your-username
+Environment=IPFS_PATH=/home/your-username/.ipfs
+ExecStart=/usr/local/bin/ipfs daemon
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Manage the service:
+```bash
+# Enable service
+sudo systemctl enable ipfs
+
+# Start service
+sudo systemctl start ipfs
+
+# Check status
+sudo systemctl status ipfs
+
+# View logs
+journalctl -u ipfs -f
+```
+
 
 ---
 
@@ -140,3 +233,9 @@ Program ID: `TdvVTrdwVwYZRGL4mJLjjPBc9SwKraKGoaNJowsrSNX`
 
 2024 © zk-Lokomotive Team  
 [https://zk-lokomotive.xyz](https://zk-lokomotive.xyz)
+
+
+
+
+
+
